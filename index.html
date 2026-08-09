@@ -385,20 +385,33 @@ else {
         fileInput.value = '';
     }
 
-    // ===== CATBOX UPLOAD (easy mode) =====
+    // ===== CATBOX UPLOAD (easy mode) via CORS proxy =====
     async function uploadCatbox(file) {
         const formData = new FormData();
         formData.append('reqtype', 'fileupload');
         formData.append('fileToUpload', file);
 
-        const res = await fetch('https://catbox.moe/user/api.php', {
-            method: 'POST',
-            body: formData
-        });
+        // Try direct first, then CORS proxy fallback
+        let res;
+        try {
+            res = await fetch('https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: formData
+            });
+        } catch (e) {
+            // CORS blocked — use proxy
+            const proxyFormData = new FormData();
+            proxyFormData.append('reqtype', 'fileupload');
+            proxyFormData.append('fileToUpload', file);
+            res = await fetch('https://corsproxy.io/?https://catbox.moe/user/api.php', {
+                method: 'POST',
+                body: proxyFormData
+            });
+        }
 
-        if (!res.ok) throw new Error(`Catbox error: ${res.status}`);
+        if (!res.ok) throw new Error(`Upload error: ${res.status}`);
         const url = await res.text();
-        if (!url.startsWith('http')) throw new Error(`Catbox error: ${url}`);
+        if (!url.startsWith('http')) throw new Error(`Upload error: ${url}`);
         return url.trim();
     }
 
