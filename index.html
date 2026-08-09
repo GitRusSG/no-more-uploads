@@ -197,12 +197,21 @@
     <div class="doc-viewer" id="preview" style="display:none"></div>
 
     <div class="result" id="result">
-        <h3>✓ Done! Paste this link to ChatGPT:</h3>
+        <h3>✓ Done!</h3>
+
+        <p style="color:#ccc; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600;">For ChatGPT (paste this):</p>
         <div class="link-box">
-            <input type="text" id="link-output" readonly>
-            <button class="btn btn-copy" id="copy-btn" onclick="copyLink()">Copy</button>
+            <input type="text" id="link-chatgpt" readonly>
+            <button class="btn btn-copy" id="copy-btn-chatgpt" onclick="copyField('link-chatgpt','copy-btn-chatgpt')">Copy</button>
         </div>
-        <p class="hint" id="result-hint"></p>
+
+        <p style="color:#ccc; margin-bottom:0.5rem; font-size:0.9rem; font-weight:600; margin-top:1rem;">For humans (viewer page):</p>
+        <div class="link-box">
+            <input type="text" id="link-human" readonly>
+            <button class="btn btn-copy" id="copy-btn-human" onclick="copyField('link-human','copy-btn-human')">Copy</button>
+        </div>
+
+        <p class="hint" id="result-hint" style="margin-top:1rem;"></p>
     </div>
 
     <div class="history" id="history" style="display:none">
@@ -268,8 +277,6 @@ else {
     const spinner = document.getElementById('spinner');
     const errorEl = document.getElementById('error');
     const result = document.getElementById('result');
-    const linkOutput = document.getElementById('link-output');
-    const copyBtn = document.getElementById('copy-btn');
     const tokenInput = document.getElementById('token-input');
     const tokenInputView = document.getElementById('token-input-view');
     const tokenSavedView = document.getElementById('token-saved-view');
@@ -364,19 +371,40 @@ else {
             }
 
             // Upload based on mode
-            let shareUrl;
+            let chatgptUrl, humanUrl;
             if (currentMode === 'easy') {
-                shareUrl = await uploadCatbox(file);
-                resultHint.textContent = 'Direct link to the file. ChatGPT can open this URL and see the file.';
+                // For easy mode: upload file to catbox for humans
+                const catboxUrl = await uploadCatbox(file);
+                humanUrl = catboxUrl;
+
+                // For ChatGPT: if it's a PDF, also upload extracted text
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (ext === 'pdf') {
+                    const buf = await file.arrayBuffer();
+                    const textContent = await extractPdfText(buf);
+                    const textBlob = new Blob([textContent], { type: 'text/plain' });
+                    const textFile = new File([textBlob], file.name.replace('.pdf', '.txt'), { type: 'text/plain' });
+                    chatgptUrl = await uploadCatbox(textFile);
+                } else if (imageTypes.includes(ext) || file.type.startsWith('image/')) {
+                    // Images: catbox URL works for ChatGPT too (it can see images via URL)
+                    chatgptUrl = catboxUrl;
+                } else {
+                    // Text files: same URL works
+                    chatgptUrl = catboxUrl;
+                }
+                resultHint.textContent = 'ChatGPT can read the top link directly. Share the bottom link with people.';
             } else {
-                shareUrl = await uploadGist(file);
-                resultHint.textContent = 'ChatGPT can open this link and see the file rendered on the page.';
+                const gistResult = await uploadGist(file);
+                chatgptUrl = gistResult.rawUrl;
+                humanUrl = gistResult.viewerUrl;
+                resultHint.textContent = 'ChatGPT can read the raw text link. Humans see the rendered version.';
             }
 
             spinner.classList.remove('visible');
             result.classList.add('visible');
-            linkOutput.value = shareUrl;
-            addToHistory(file.name, shareUrl);
+            document.getElementById('link-chatgpt').value = chatgptUrl;
+            document.getElementById('link-human').value = humanUrl;
+            addToHistory(file.name, chatgptUrl);
 
         } catch (err) {
             spinner.classList.remove('visible');
@@ -422,19 +450,27 @@ else {
 
         const ext = file.name.split('.').pop().toLowerCase();
         const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
-        let gistFilename, content;
+        let gistFilename, content, textContent;
 
-        if (ext === 'pdf' || imageTypes.includes(ext) || file.type.startsWith('image/')) {
+        if (ext === 'pdf') {
             const buf = await file.arrayBuffer();
             content = arrayBufferToBase64(buf);
-            if (ext === 'pdf') {
-                gistFilename = file.name.replace('.pdf', '.b64pdf');
-            } else {
-                gistFilename = file.name.replace(/\.(\w+)$/, '.b64$1');
-            }
+            gistFilename = file.name.replace('.pdf', '.b64pdf');
+            // Also extract text for ChatGPT
+            textContent = await extractPdfText(buf);
+        } else if (imageTypes.includes(ext) || file.type.startsWith('image/')) {
+            const buf = await file.arrayBuffer();
+            content = arrayBufferToBase64(buf);
+            gistFilename = file.name.replace(/\.(\w+)$/, '.b64$1');
         } else {
             content = await file.text();
             gistFilename = file.name;
+        }
+
+        // Build files object — include text version for PDFs
+        const files = { [gistFilename]: { content } };
+        if (textContent) {
+            files[file.name.replace('.pdf', '.txt')] = { content: textContent };
         }
 
         const res = await fetch('https://api.github.com/gists', {
@@ -443,25 +479,34 @@ else {
             body: JSON.stringify({
                 description: `No More Uploads: ${file.name}`,
                 public: false,
-                files: { [gistFilename]: { content } }
+                files
             })
         });
 
         if (!res.ok) { const d = await res.json(); throw new Error(d.message || `GitHub API error ${res.status}`); }
         const data = await res.json();
-        return `${window.location.origin}${window.location.pathname}?gist=${data.id}`;
+
+        // Get the raw URL — prefer the .txt file for ChatGPT, otherwise the main file
+        const gistFiles = Object.values(data.files);
+        const txtFile = gistFiles.find(f => f.filename.endsWith('.txt'));
+        const rawUrl = txtFile ? txtFile.raw_url : gistFiles[0].raw_url;
+        const viewerUrl = `${window.location.origin}${window.location.pathname}?gist=${data.id}`;
+
+        return { rawUrl, viewerUrl };
     }
 
     function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
 
-    function copyLink() {
-        navigator.clipboard.writeText(linkOutput.value).then(() => {
-            copyBtn.textContent = 'Copied!';
-            copyBtn.classList.add('copied');
-            setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
+    function copyField(inputId, btnId) {
+        const val = document.getElementById(inputId).value;
+        const btn = document.getElementById(btnId);
+        navigator.clipboard.writeText(val).then(() => {
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
         });
     }
-    window.copyLink = copyLink;
+    window.copyField = copyField;
 
     function copyToClipboard(text, btn) {
         navigator.clipboard.writeText(text).then(() => {
@@ -495,6 +540,18 @@ function readAsDataUrl(file) {
         reader.onload = e => resolve(e.target.result);
         reader.readAsDataURL(file);
     });
+}
+
+async function extractPdfText(arrayBuffer) {
+    const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(arrayBuffer) }).promise;
+    let text = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        const pageText = content.items.map(item => item.str).join(' ');
+        text += `--- Page ${i} ---\n${pageText}\n\n`;
+    }
+    return text;
 }
 
 async function renderPdf(arrayBuffer, container) {
