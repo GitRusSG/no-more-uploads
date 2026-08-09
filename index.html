@@ -30,11 +30,38 @@
 
         .subtitle { color: #aaa; margin-bottom: 2rem; font-size: 1.1rem; text-align: center; }
 
-        .token-section {
+        /* Mode switcher */
+        .mode-switch {
+            width: 100%; max-width: 800px;
+            display: flex; gap: 0; margin-bottom: 1.5rem;
+            border-radius: 10px; overflow: hidden;
+            border: 1px solid #333;
+        }
+        .mode-btn {
+            flex: 1; padding: 0.8rem; text-align: center;
+            cursor: pointer; font-size: 0.95rem; font-weight: 600;
+            background: #16213e; color: #888; border: none;
+            transition: all 0.2s;
+        }
+        .mode-btn.active { background: #feca57; color: #1a1a2e; }
+        .mode-btn:hover:not(.active) { background: #1e2a4a; color: #ccc; }
+
+        .mode-info {
             width: 100%; max-width: 800px;
             background: #16213e; border-radius: 12px;
-            padding: 1.5rem; margin-bottom: 2rem;
+            padding: 1rem 1.5rem; margin-bottom: 1.5rem;
+            font-size: 0.9rem; color: #aaa;
         }
+        .mode-info strong { color: #feca57; }
+
+        /* Token section (GitHub mode only) */
+        .token-section {
+            display: none;
+            width: 100%; max-width: 800px;
+            background: #16213e; border-radius: 12px;
+            padding: 1.5rem; margin-bottom: 1.5rem;
+        }
+        .token-section.visible { display: block; }
         .token-section label { display: block; margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem; }
         .token-row { display: flex; gap: 0.5rem; }
         .token-row input {
@@ -80,7 +107,7 @@
         .error { display: none; width: 100%; max-width: 800px; background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; border-radius: 12px; padding: 1rem 1.5rem; color: #e74c3c; margin-bottom: 1rem; }
         .error.visible { display: block; }
 
-        /* Preview / Viewer */
+        /* Document viewer */
         .doc-viewer {
             width: 100%; max-width: 900px;
             background: #0f0f23; border: 1px solid #333;
@@ -88,30 +115,13 @@
             margin-bottom: 1.5rem; text-align: center;
             max-height: 75vh; overflow-y: auto;
         }
-        .doc-viewer canvas {
-            display: block; margin: 0 auto 1rem auto;
-            max-width: 100%; border-radius: 4px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-        }
-        .doc-viewer img {
-            max-width: 100%; border-radius: 8px;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-        }
-        .doc-viewer pre {
-            text-align: left; white-space: pre-wrap; word-wrap: break-word;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 0.85rem; line-height: 1.6; color: #ddd;
-        }
-        .doc-viewer .page-label {
-            color: #666; font-size: 0.8rem; margin-bottom: 0.5rem;
-        }
+        .doc-viewer canvas { display: block; margin: 0 auto 1rem auto; max-width: 100%; border-radius: 4px; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+        .doc-viewer img { max-width: 100%; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.4); }
+        .doc-viewer pre { text-align: left; white-space: pre-wrap; word-wrap: break-word; font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.85rem; line-height: 1.6; color: #ddd; }
+        .doc-viewer .page-label { color: #666; font-size: 0.8rem; margin-bottom: 0.5rem; }
 
-        /* View mode header */
-        .view-bar {
-            display: none; width: 100%; max-width: 900px;
-            align-items: center; justify-content: space-between;
-            margin-bottom: 1rem;
-        }
+        /* View mode */
+        .view-bar { display: none; width: 100%; max-width: 900px; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
         .view-bar.visible { display: flex; }
         .view-bar h2 { color: #feca57; font-size: 1.3rem; }
         .view-bar a { color: #58a6ff; text-decoration: none; font-size: 0.9rem; }
@@ -127,7 +137,7 @@
 </head>
 <body>
 
-<!-- VIEW MODE -->
+<!-- VIEW MODE (shared link opened) -->
 <div class="view-bar" id="view-bar">
     <h2 id="view-filename">Loading...</h2>
     <a href=".">← Upload your own</a>
@@ -137,8 +147,22 @@
 <!-- UPLOAD MODE -->
 <div id="upload-mode">
     <h1>No More Uploads!</h1>
-    <p class="subtitle">Drop a PDF/image → see it rendered → get a link ChatGPT can read.</p>
+    <p class="subtitle">Drop a file → see it rendered → get a link → paste to ChatGPT.</p>
 
+    <!-- Mode switcher -->
+    <div class="mode-switch">
+        <button class="mode-btn active" id="mode-easy" onclick="setMode('easy')">Easy (No account)</button>
+        <button class="mode-btn" id="mode-github" onclick="setMode('github')">GitHub (Permanent)</button>
+    </div>
+
+    <div class="mode-info" id="mode-info-easy">
+        <strong>Easy mode:</strong> Files are uploaded anonymously to catbox.moe. No account needed. Files stay available for a long time. Just drop and go.
+    </div>
+    <div class="mode-info" id="mode-info-github" style="display:none">
+        <strong>GitHub mode:</strong> Files are stored as Gists on your GitHub account. Permanent, private, and under your control. Requires a one-time token setup.
+    </div>
+
+    <!-- Token section (GitHub only) -->
     <div class="token-section" id="token-section">
         <div id="token-input-view">
             <h3 style="color:#feca57; margin-bottom:0.8rem; font-size:1rem;">One-time setup (30 seconds)</h3>
@@ -152,7 +176,7 @@
                 <input type="password" id="token-input" placeholder="Paste your token here">
                 <button class="btn btn-primary" onclick="saveToken()">Save</button>
             </div>
-            <p style="color:#555; font-size:0.8rem; margin-top:0.5rem;">Token is stored only in your browser. Never sent anywhere except GitHub's API.</p>
+            <p style="color:#555; font-size:0.8rem; margin-top:0.5rem;">Token stays in your browser only. Never sent anywhere except GitHub.</p>
         </div>
         <div id="token-saved-view" class="token-saved" style="display:none">
             <span>✓ Token saved — you're good to go!</span>
@@ -163,7 +187,7 @@
     <div class="drop-zone" id="drop-zone">
         <div class="icon">📂</div>
         <p>Click or drag a file here</p>
-        <p class="supported">PDF, images (PNG/JPG/etc), text, code — any file.</p>
+        <p class="supported">PDF, images, text, code — any file up to 200MB.</p>
         <input type="file" id="file-input">
     </div>
 
@@ -178,7 +202,7 @@
             <input type="text" id="link-output" readonly>
             <button class="btn btn-copy" id="copy-btn" onclick="copyLink()">Copy</button>
         </div>
-        <p class="hint">ChatGPT can open this link and see the file rendered on the page.</p>
+        <p class="hint" id="result-hint"></p>
     </div>
 
     <div class="history" id="history" style="display:none">
@@ -193,7 +217,7 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs
 const params = new URLSearchParams(window.location.search);
 const gistId = params.get('gist');
 
-// ===== VIEW MODE =====
+// ===== VIEW MODE (Gist links) =====
 if (gistId) {
     document.getElementById('upload-mode').style.display = 'none';
     const viewBar = document.getElementById('view-bar');
@@ -211,40 +235,33 @@ if (gistId) {
             document.getElementById('view-filename').textContent = filename;
             document.title = `${filename} — No More Uploads!`;
 
-            // Get full content
             let content = file.content;
-            if (file.truncated) {
-                content = await fetch(file.raw_url).then(r => r.text());
-            }
+            if (file.truncated) content = await fetch(file.raw_url).then(r => r.text());
 
-            // Determine type from the metadata stored in the gist description or filename
             const ext = filename.split('.').pop().toLowerCase();
 
             if (ext === 'b64pdf') {
-                // It's a base64-encoded PDF
                 const pdfData = atob(content);
                 const pdfArray = new Uint8Array(pdfData.length);
                 for (let i = 0; i < pdfData.length; i++) pdfArray[i] = pdfData.charCodeAt(i);
                 await renderPdf(pdfArray.buffer, viewer);
             } else if (['b64png', 'b64jpg', 'b64jpeg', 'b64gif', 'b64webp', 'b64svg'].includes(ext)) {
-                // base64-encoded image
                 const realExt = ext.replace('b64', '');
                 const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
                 viewer.innerHTML = `<img src="data:${mimeMap[realExt]};base64,${content}" alt="${filename}">`;
             } else {
-                // Plain text / code
                 viewer.innerHTML = `<pre>${escapeHtml(content)}</pre>`;
             }
         })
-        .catch(err => {
-            viewer.innerHTML = `<p style="color:#e74c3c">Error: ${err.message}</p>`;
-        });
+        .catch(err => { viewer.innerHTML = `<p style="color:#e74c3c">Error: ${err.message}</p>`; });
 }
 
 // ===== UPLOAD MODE =====
 else {
     document.getElementById('view-bar').style.display = 'none';
     document.getElementById('viewer').style.display = 'none';
+
+    let currentMode = localStorage.getItem('nmu-mode') || 'easy';
 
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
@@ -259,7 +276,22 @@ else {
     const historyDiv = document.getElementById('history');
     const historyList = document.getElementById('history-list');
     const previewEl = document.getElementById('preview');
+    const resultHint = document.getElementById('result-hint');
 
+    // Mode switching
+    function setMode(mode) {
+        currentMode = mode;
+        localStorage.setItem('nmu-mode', mode);
+        document.getElementById('mode-easy').classList.toggle('active', mode === 'easy');
+        document.getElementById('mode-github').classList.toggle('active', mode === 'github');
+        document.getElementById('mode-info-easy').style.display = mode === 'easy' ? 'block' : 'none';
+        document.getElementById('mode-info-github').style.display = mode === 'github' ? 'block' : 'none';
+        document.getElementById('token-section').classList.toggle('visible', mode === 'github');
+    }
+    window.setMode = setMode;
+    setMode(currentMode);
+
+    // Token
     function getToken() { return localStorage.getItem('nmu-github-token') || ''; }
     function saveToken() {
         const token = tokenInput.value.trim();
@@ -268,7 +300,6 @@ else {
         showTokenSaved();
     }
     window.saveToken = saveToken;
-
     function clearToken() {
         localStorage.removeItem('nmu-github-token');
         tokenInputView.style.display = 'block';
@@ -276,7 +307,6 @@ else {
         tokenInput.value = '';
     }
     window.clearToken = clearToken;
-
     function showTokenSaved() { tokenInputView.style.display = 'none'; tokenSavedView.style.display = 'flex'; }
     if (getToken()) showTokenSaved();
 
@@ -285,7 +315,7 @@ else {
     function addToHistory(name, url) {
         const h = getHistory();
         h.unshift({ name, url, time: Date.now() });
-        if (h.length > 20) h.pop();
+        if (h.length > 30) h.pop();
         localStorage.setItem('nmu-history', JSON.stringify(h));
         renderHistory();
     }
@@ -295,7 +325,7 @@ else {
         historyDiv.style.display = 'block';
         historyList.innerHTML = h.map(item => {
             const u = item.url.replace(/'/g, "\\'");
-            return `<div class="history-item"><span class="name">${escapeHtml(item.name)}</span><div class="actions"><button onclick="copyToClipboard('${u}',this)">Copy</button><button onclick="window.open('${u}','_blank')">View</button></div></div>`;
+            return `<div class="history-item"><span class="name">${escapeHtml(item.name)}</span><div class="actions"><button onclick="copyToClipboard('${u}',this)">Copy</button><button onclick="window.open('${u}','_blank')">Open</button></div></div>`;
         }).join('');
     }
     renderHistory();
@@ -308,9 +338,6 @@ else {
     fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
 
     async function handleFile(file) {
-        const token = getToken();
-        if (!token) { showError('Save your GitHub token first.'); return; }
-
         errorEl.classList.remove('visible');
         result.classList.remove('visible');
         previewEl.style.display = 'none';
@@ -319,66 +346,97 @@ else {
         try {
             const ext = file.name.split('.').pop().toLowerCase();
             const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
-            let gistFilename, content;
 
+            // Show preview
             if (ext === 'pdf') {
-                // Encode PDF as base64
                 const buf = await file.arrayBuffer();
-                content = arrayBufferToBase64(buf);
-                gistFilename = file.name.replace('.pdf', '.b64pdf');
-
-                // Render preview
                 previewEl.style.display = 'block';
-                previewEl.innerHTML = '<p style="color:#aaa">Rendering preview...</p>';
-                await renderPdf(buf, previewEl);
-
+                previewEl.innerHTML = '<p style="color:#aaa">Rendering PDF...</p>';
+                await renderPdf(buf.slice(0), previewEl);
             } else if (imageTypes.includes(ext) || file.type.startsWith('image/')) {
-                // Encode image as base64
-                const buf = await file.arrayBuffer();
-                content = arrayBufferToBase64(buf);
-                gistFilename = file.name.replace(/\.(\w+)$/, '.b64$1');
-
-                // Show preview
-                const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp' };
-                const mime = mimeMap[ext] || file.type;
+                const dataUrl = await readAsDataUrl(file);
                 previewEl.style.display = 'block';
-                previewEl.innerHTML = `<img src="data:${mime};base64,${content}" alt="${file.name}">`;
-
+                previewEl.innerHTML = `<img src="${dataUrl}" alt="${escapeHtml(file.name)}">`;
             } else {
-                // Plain text
-                content = await file.text();
-                gistFilename = file.name;
-
+                const text = await file.text();
                 previewEl.style.display = 'block';
-                previewEl.innerHTML = `<pre>${escapeHtml(content.length > 50000 ? content.slice(0, 50000) + '\n...[truncated]' : content)}</pre>`;
+                previewEl.innerHTML = `<pre>${escapeHtml(text.length > 50000 ? text.slice(0, 50000) + '\n...[truncated]' : text)}</pre>`;
             }
 
-            // Upload to Gist
-            const res = await fetch('https://api.github.com/gists', {
-                method: 'POST',
-                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    description: `No More Uploads: ${file.name}`,
-                    public: false,
-                    files: { [gistFilename]: { content } }
-                })
-            });
-
-            if (!res.ok) { const d = await res.json(); throw new Error(d.message || `API error ${res.status}`); }
-
-            const data = await res.json();
-            const viewerUrl = `${window.location.origin}${window.location.pathname}?gist=${data.id}`;
+            // Upload based on mode
+            let shareUrl;
+            if (currentMode === 'easy') {
+                shareUrl = await uploadCatbox(file);
+                resultHint.textContent = 'Direct link to the file. ChatGPT can open this URL and see the file.';
+            } else {
+                shareUrl = await uploadGist(file);
+                resultHint.textContent = 'ChatGPT can open this link and see the file rendered on the page.';
+            }
 
             spinner.classList.remove('visible');
             result.classList.add('visible');
-            linkOutput.value = viewerUrl;
-            addToHistory(file.name, viewerUrl);
+            linkOutput.value = shareUrl;
+            addToHistory(file.name, shareUrl);
 
         } catch (err) {
             spinner.classList.remove('visible');
             showError(err.message);
         }
         fileInput.value = '';
+    }
+
+    // ===== CATBOX UPLOAD (easy mode) =====
+    async function uploadCatbox(file) {
+        const formData = new FormData();
+        formData.append('reqtype', 'fileupload');
+        formData.append('fileToUpload', file);
+
+        const res = await fetch('https://catbox.moe/user/api.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!res.ok) throw new Error(`Catbox error: ${res.status}`);
+        const url = await res.text();
+        if (!url.startsWith('http')) throw new Error(`Catbox error: ${url}`);
+        return url.trim();
+    }
+
+    // ===== GIST UPLOAD (GitHub mode) =====
+    async function uploadGist(file) {
+        const token = getToken();
+        if (!token) throw new Error('Save your GitHub token first (switch to GitHub mode).');
+
+        const ext = file.name.split('.').pop().toLowerCase();
+        const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
+        let gistFilename, content;
+
+        if (ext === 'pdf' || imageTypes.includes(ext) || file.type.startsWith('image/')) {
+            const buf = await file.arrayBuffer();
+            content = arrayBufferToBase64(buf);
+            if (ext === 'pdf') {
+                gistFilename = file.name.replace('.pdf', '.b64pdf');
+            } else {
+                gistFilename = file.name.replace(/\.(\w+)$/, '.b64$1');
+            }
+        } else {
+            content = await file.text();
+            gistFilename = file.name;
+        }
+
+        const res = await fetch('https://api.github.com/gists', {
+            method: 'POST',
+            headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                description: `No More Uploads: ${file.name}`,
+                public: false,
+                files: { [gistFilename]: { content } }
+            })
+        });
+
+        if (!res.ok) { const d = await res.json(); throw new Error(d.message || `GitHub API error ${res.status}`); }
+        const data = await res.json();
+        return `${window.location.origin}${window.location.pathname}?gist=${data.id}`;
     }
 
     function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
@@ -416,6 +474,14 @@ function arrayBufferToBase64(buffer) {
         binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
     }
     return btoa(binary);
+}
+
+function readAsDataUrl(file) {
+    return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result);
+        reader.readAsDataURL(file);
+    });
 }
 
 async function renderPdf(arrayBuffer, container) {
