@@ -141,14 +141,21 @@
 
     <div class="token-section" id="token-section">
         <div id="token-input-view">
-            <label>GitHub Token (needs "gist" scope) — <a href="https://github.com/settings/tokens/new?scopes=gist&description=no-more-uploads" target="_blank" style="color:#58a6ff">create one here</a></label>
+            <h3 style="color:#feca57; margin-bottom:0.8rem; font-size:1rem;">One-time setup (30 seconds)</h3>
+            <ol style="color:#bbb; font-size:0.9rem; margin-bottom:1rem; padding-left:1.2rem; line-height:1.8;">
+                <li><a href="https://github.com/settings/tokens/new?scopes=gist&description=no-more-uploads" target="_blank" style="color:#58a6ff; font-weight:600;">Click here to create a token</a> (opens GitHub)</li>
+                <li>Scroll down, click <strong style="color:#eee;">"Generate token"</strong> (don't change anything)</li>
+                <li>Copy the token that appears (starts with <code style="color:#feca57;">ghp_</code>)</li>
+                <li>Paste it below and hit Save</li>
+            </ol>
             <div class="token-row">
-                <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx">
+                <input type="password" id="token-input" placeholder="Paste your token here">
                 <button class="btn btn-primary" onclick="saveToken()">Save</button>
             </div>
+            <p style="color:#555; font-size:0.8rem; margin-top:0.5rem;">Token is stored only in your browser. Never sent anywhere except GitHub's API.</p>
         </div>
         <div id="token-saved-view" class="token-saved" style="display:none">
-            <span>✓ Token saved in browser</span>
+            <span>✓ Token saved — you're good to go!</span>
             <button onclick="clearToken()">Change token</button>
         </div>
     </div>
