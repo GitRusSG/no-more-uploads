@@ -4,12 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>No More Uploads!</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -31,725 +28,411 @@
             background-clip: text;
         }
 
-        .subtitle {
-            color: #aaa;
-            margin-bottom: 2rem;
-            font-size: 1.1rem;
-            text-align: center;
-        }
+        .subtitle { color: #aaa; margin-bottom: 2rem; font-size: 1.1rem; text-align: center; }
 
         .token-section {
-            width: 100%;
-            max-width: 800px;
-            background: #16213e;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 2rem;
+            width: 100%; max-width: 800px;
+            background: #16213e; border-radius: 12px;
+            padding: 1.5rem; margin-bottom: 2rem;
         }
-
-        .token-section label {
-            display: block;
-            margin-bottom: 0.5rem;
-            color: #aaa;
-            font-size: 0.9rem;
-        }
-
-        .token-row {
-            display: flex;
-            gap: 0.5rem;
-        }
-
+        .token-section label { display: block; margin-bottom: 0.5rem; color: #aaa; font-size: 0.9rem; }
+        .token-row { display: flex; gap: 0.5rem; }
         .token-row input {
-            flex: 1;
-            padding: 0.6rem 1rem;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #0f0f23;
-            color: #eee;
-            font-size: 0.95rem;
-            font-family: monospace;
+            flex: 1; padding: 0.6rem 1rem; border-radius: 8px;
+            border: 1px solid #333; background: #0f0f23; color: #eee;
+            font-size: 0.95rem; font-family: monospace;
         }
-
-        .token-saved {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            color: #2ecc71;
-            font-size: 0.95rem;
-        }
-
-        .token-saved button {
-            background: none;
-            border: 1px solid #444;
-            color: #aaa;
-            padding: 0.3rem 0.8rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .token-saved button:hover {
-            border-color: #e74c3c;
-            color: #e74c3c;
-        }
+        .token-saved { display: flex; align-items: center; justify-content: space-between; color: #2ecc71; font-size: 0.95rem; }
+        .token-saved button { background: none; border: 1px solid #444; color: #aaa; padding: 0.3rem 0.8rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .token-saved button:hover { border-color: #e74c3c; color: #e74c3c; }
 
         .drop-zone {
-            width: 100%;
-            max-width: 800px;
-            border: 3px dashed #444;
-            border-radius: 16px;
-            padding: 3rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            margin-bottom: 2rem;
+            width: 100%; max-width: 800px;
+            border: 3px dashed #444; border-radius: 16px;
+            padding: 3rem; text-align: center; cursor: pointer;
+            transition: all 0.3s ease; margin-bottom: 2rem;
         }
+        .drop-zone:hover, .drop-zone.dragover { border-color: #feca57; background: rgba(254, 202, 87, 0.05); }
+        .drop-zone p { font-size: 1.2rem; color: #888; }
+        .drop-zone .icon { font-size: 3rem; margin-bottom: 1rem; }
+        .drop-zone .supported { color: #666; font-size: 0.85rem; margin-top: 0.5rem; }
+        #file-input { display: none; }
 
-        .drop-zone:hover,
-        .drop-zone.dragover {
-            border-color: #feca57;
-            background: rgba(254, 202, 87, 0.05);
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 8px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: all 0.2s ease; }
+        .btn-primary { background: #feca57; color: #1a1a2e; }
+        .btn-primary:hover { background: #feb700; transform: scale(1.05); }
+
+        .result { display: none; width: 100%; max-width: 800px; background: #16213e; border-radius: 12px; padding: 1.5rem; text-align: center; margin-bottom: 1.5rem; }
+        .result.visible { display: block; }
+        .result h3 { color: #2ecc71; margin-bottom: 1rem; font-size: 1.2rem; }
+        .link-box { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
+        .link-box input { flex: 1; padding: 0.7rem 1rem; border-radius: 8px; border: 1px solid #333; background: #0f0f23; color: #58a6ff; font-size: 0.9rem; font-family: monospace; }
+        .btn-copy { background: #58a6ff; color: #0f0f23; }
+        .btn-copy:hover { background: #79b8ff; }
+        .btn-copy.copied { background: #2ecc71; color: white; }
+        .result .hint { color: #888; font-size: 0.85rem; }
+
+        .spinner { display: none; width: 100%; max-width: 800px; text-align: center; padding: 2rem; color: #aaa; }
+        .spinner.visible { display: block; }
+        .spinner::after { content: ''; display: inline-block; width: 24px; height: 24px; border: 3px solid #444; border-top-color: #feca57; border-radius: 50%; animation: spin 0.8s linear infinite; vertical-align: middle; margin-left: 0.5rem; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .error { display: none; width: 100%; max-width: 800px; background: rgba(231, 76, 60, 0.1); border: 1px solid #e74c3c; border-radius: 12px; padding: 1rem 1.5rem; color: #e74c3c; margin-bottom: 1rem; }
+        .error.visible { display: block; }
+
+        /* Preview / Viewer */
+        .doc-viewer {
+            width: 100%; max-width: 900px;
+            background: #0f0f23; border: 1px solid #333;
+            border-radius: 12px; padding: 1.5rem;
+            margin-bottom: 1.5rem; text-align: center;
+            max-height: 75vh; overflow-y: auto;
         }
-
-        .drop-zone p {
-            font-size: 1.2rem;
-            color: #888;
+        .doc-viewer canvas {
+            display: block; margin: 0 auto 1rem auto;
+            max-width: 100%; border-radius: 4px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
         }
-
-        .drop-zone .icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+        .doc-viewer img {
+            max-width: 100%; border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
         }
-
-        .drop-zone .supported {
-            color: #666;
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-        }
-
-        #file-input {
-            display: none;
-        }
-
-        .btn {
-            padding: 0.6rem 1.2rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 0.95rem;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-primary {
-            background: #feca57;
-            color: #1a1a2e;
-        }
-
-        .btn-primary:hover {
-            background: #feb700;
-            transform: scale(1.05);
-        }
-
-        .btn-primary:disabled {
-            background: #555;
-            color: #888;
-            transform: none;
-            cursor: not-allowed;
-        }
-
-        .result {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            background: #16213e;
-            border-radius: 12px;
-            padding: 1.5rem;
-            text-align: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .result.visible {
-            display: block;
-        }
-
-        .result h3 {
-            color: #2ecc71;
-            margin-bottom: 1rem;
-            font-size: 1.2rem;
-        }
-
-        .link-box {
-            display: flex;
-            gap: 0.5rem;
-            margin-bottom: 1rem;
-        }
-
-        .link-box input {
-            flex: 1;
-            padding: 0.7rem 1rem;
-            border-radius: 8px;
-            border: 1px solid #333;
-            background: #0f0f23;
-            color: #58a6ff;
-            font-size: 0.9rem;
-            font-family: monospace;
-        }
-
-        .btn-copy {
-            background: #58a6ff;
-            color: #0f0f23;
-        }
-
-        .btn-copy:hover {
-            background: #79b8ff;
-        }
-
-        .btn-copy.copied {
-            background: #2ecc71;
-            color: white;
-        }
-
-        .result .hint {
-            color: #888;
-            font-size: 0.85rem;
-        }
-
-        .preview {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            margin-bottom: 2rem;
-        }
-
-        .preview.visible {
-            display: block;
-        }
-
-        .preview-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 0.5rem;
-        }
-
-        .preview-header h3 {
-            color: #feca57;
-            font-size: 1rem;
-        }
-
-        .preview-header .file-meta {
-            color: #666;
-            font-size: 0.85rem;
-        }
-
-        .preview-content {
-            background: #0f0f23;
-            border: 1px solid #333;
-            border-radius: 12px;
-            padding: 1.5rem;
-            max-height: 50vh;
-            overflow-y: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
+        .doc-viewer pre {
+            text-align: left; white-space: pre-wrap; word-wrap: break-word;
             font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 0.85rem;
-            line-height: 1.6;
-            color: #ddd;
+            font-size: 0.85rem; line-height: 1.6; color: #ddd;
+        }
+        .doc-viewer .page-label {
+            color: #666; font-size: 0.8rem; margin-bottom: 0.5rem;
         }
 
-        .preview-content img {
-            max-width: 100%;
-            border-radius: 8px;
-        }
-
-        .spinner {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            text-align: center;
-            padding: 2rem;
-            color: #aaa;
-        }
-
-        .spinner.visible {
-            display: block;
-        }
-
-        .spinner::after {
-            content: '';
-            display: inline-block;
-            width: 24px;
-            height: 24px;
-            border: 3px solid #444;
-            border-top-color: #feca57;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-            vertical-align: middle;
-            margin-left: 0.5rem;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .error {
-            display: none;
-            width: 100%;
-            max-width: 800px;
-            background: rgba(231, 76, 60, 0.1);
-            border: 1px solid #e74c3c;
-            border-radius: 12px;
-            padding: 1rem 1.5rem;
-            color: #e74c3c;
+        /* View mode header */
+        .view-bar {
+            display: none; width: 100%; max-width: 900px;
+            align-items: center; justify-content: space-between;
             margin-bottom: 1rem;
         }
+        .view-bar.visible { display: flex; }
+        .view-bar h2 { color: #feca57; font-size: 1.3rem; }
+        .view-bar a { color: #58a6ff; text-decoration: none; font-size: 0.9rem; }
 
-        .error.visible {
-            display: block;
-        }
-
-        .history {
-            width: 100%;
-            max-width: 800px;
-            margin-top: 1rem;
-        }
-
-        .history h3 {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .history-item {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: #16213e;
-            border-radius: 8px;
-            padding: 0.7rem 1rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .history-item .name {
-            color: #ccc;
-            font-size: 0.9rem;
-        }
-
-        .history-item .actions {
-            display: flex;
-            gap: 0.3rem;
-        }
-
-        .history-item button {
-            background: none;
-            border: 1px solid #333;
-            color: #58a6ff;
-            padding: 0.3rem 0.6rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-
-        .history-item button:hover {
-            background: #58a6ff;
-            color: #0f0f23;
-        }
-
-        /* View mode (when opened via ?gist= link) */
-        .view-mode body {
-            padding: 1rem;
-        }
-
-        .view-header {
-            display: none;
-            width: 100%;
-            max-width: 900px;
-            margin-bottom: 1rem;
-        }
-
-        .view-header.visible {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .view-header h2 {
-            color: #feca57;
-        }
-
-        .view-header .back-link {
-            color: #58a6ff;
-            text-decoration: none;
-            font-size: 0.9rem;
-        }
-
-        .view-content {
-            display: none;
-            width: 100%;
-            max-width: 900px;
-            background: #0f0f23;
-            border: 1px solid #333;
-            border-radius: 12px;
-            padding: 2rem;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: 'SF Mono', 'Fira Code', monospace;
-            font-size: 0.9rem;
-            line-height: 1.7;
-            color: #ddd;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-
-        .view-content.visible {
-            display: block;
-        }
+        .history { width: 100%; max-width: 800px; margin-top: 1rem; }
+        .history h3 { color: #888; font-size: 0.9rem; margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px; }
+        .history-item { display: flex; align-items: center; justify-content: space-between; background: #16213e; border-radius: 8px; padding: 0.7rem 1rem; margin-bottom: 0.5rem; }
+        .history-item .name { color: #ccc; font-size: 0.9rem; }
+        .history-item .actions { display: flex; gap: 0.3rem; }
+        .history-item button { background: none; border: 1px solid #333; color: #58a6ff; padding: 0.3rem 0.6rem; border-radius: 6px; cursor: pointer; font-size: 0.8rem; }
+        .history-item button:hover { background: #58a6ff; color: #0f0f23; }
     </style>
 </head>
 <body>
-    <!-- VIEW MODE (when someone opens a shared link) -->
-    <div class="view-header" id="view-header">
-        <h2 id="view-filename">Loading...</h2>
-        <a class="back-link" href="." >← Upload your own</a>
-    </div>
-    <div class="view-content" id="view-content"></div>
 
-    <!-- UPLOAD MODE -->
-    <div id="upload-mode">
-        <h1>No More Uploads!</h1>
-        <p class="subtitle">Drop a file → see it here → get a link → paste to ChatGPT. Done.</p>
+<!-- VIEW MODE -->
+<div class="view-bar" id="view-bar">
+    <h2 id="view-filename">Loading...</h2>
+    <a href=".">← Upload your own</a>
+</div>
+<div class="doc-viewer" id="viewer" style="display:none"></div>
 
-        <div class="token-section" id="token-section">
-            <div id="token-input-view">
-                <label>GitHub Token (needs "gist" scope) — <a href="https://github.com/settings/tokens/new?scopes=gist&description=no-more-uploads" target="_blank" style="color:#58a6ff">create one here</a></label>
-                <div class="token-row">
-                    <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx">
-                    <button class="btn btn-primary" onclick="saveToken()">Save</button>
-                </div>
-            </div>
-            <div id="token-saved-view" class="token-saved" style="display:none">
-                <span>✓ Token saved in browser</span>
-                <button onclick="clearToken()">Change token</button>
+<!-- UPLOAD MODE -->
+<div id="upload-mode">
+    <h1>No More Uploads!</h1>
+    <p class="subtitle">Drop a PDF/image → see it rendered → get a link ChatGPT can read.</p>
+
+    <div class="token-section" id="token-section">
+        <div id="token-input-view">
+            <label>GitHub Token (needs "gist" scope) — <a href="https://github.com/settings/tokens/new?scopes=gist&description=no-more-uploads" target="_blank" style="color:#58a6ff">create one here</a></label>
+            <div class="token-row">
+                <input type="password" id="token-input" placeholder="ghp_xxxxxxxxxxxx">
+                <button class="btn btn-primary" onclick="saveToken()">Save</button>
             </div>
         </div>
-
-        <div class="drop-zone" id="drop-zone">
-            <div class="icon">📂</div>
-            <p>Click or drag a file here</p>
-            <p class="supported">Text, code, PDF, images — anything you'd normally upload to ChatGPT.</p>
-            <input type="file" id="file-input">
-        </div>
-
-        <div class="spinner" id="spinner">Uploading to Gist</div>
-        <div class="error" id="error"></div>
-
-        <div class="preview" id="preview">
-            <div class="preview-header">
-                <h3 id="preview-filename"></h3>
-                <span class="file-meta" id="preview-meta"></span>
-            </div>
-            <div class="preview-content" id="preview-content"></div>
-        </div>
-
-        <div class="result" id="result">
-            <h3>✓ Ready! Paste this link to ChatGPT:</h3>
-            <div class="link-box">
-                <input type="text" id="link-output" readonly>
-                <button class="btn btn-copy" id="copy-btn" onclick="copyLink()">Copy</button>
-            </div>
-            <p class="hint">ChatGPT can open this link and see the file content directly.</p>
-        </div>
-
-        <div class="history" id="history" style="display:none">
-            <h3>Recent</h3>
-            <div id="history-list"></div>
+        <div id="token-saved-view" class="token-saved" style="display:none">
+            <span>✓ Token saved in browser</span>
+            <button onclick="clearToken()">Change token</button>
         </div>
     </div>
 
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script>
-        // Check if we're in view mode (someone opened a shared link)
-        const params = new URLSearchParams(window.location.search);
-        const gistId = params.get('gist');
+    <div class="drop-zone" id="drop-zone">
+        <div class="icon">📂</div>
+        <p>Click or drag a file here</p>
+        <p class="supported">PDF, images (PNG/JPG/etc), text, code — any file.</p>
+        <input type="file" id="file-input">
+    </div>
 
-        if (gistId) {
-            // VIEW MODE
-            document.getElementById('upload-mode').style.display = 'none';
-            const viewHeader = document.getElementById('view-header');
-            const viewContent = document.getElementById('view-content');
+    <div class="spinner" id="spinner">Processing & uploading</div>
+    <div class="error" id="error"></div>
 
-            viewHeader.classList.add('visible');
-            viewContent.classList.add('visible');
-            viewContent.textContent = 'Loading...';
+    <div class="doc-viewer" id="preview" style="display:none"></div>
 
-            fetch(`https://api.github.com/gists/${gistId}`)
-                .then(r => r.json())
-                .then(data => {
-                    const file = Object.values(data.files)[0];
-                    document.getElementById('view-filename').textContent = file.filename;
-                    document.title = `${file.filename} — No More Uploads!`;
-                    if (file.truncated) {
-                        return fetch(file.raw_url).then(r => r.text());
-                    }
-                    return file.content;
+    <div class="result" id="result">
+        <h3>✓ Done! Paste this link to ChatGPT:</h3>
+        <div class="link-box">
+            <input type="text" id="link-output" readonly>
+            <button class="btn btn-copy" id="copy-btn" onclick="copyLink()">Copy</button>
+        </div>
+        <p class="hint">ChatGPT can open this link and see the file rendered on the page.</p>
+    </div>
+
+    <div class="history" id="history" style="display:none">
+        <h3>Recent</h3>
+        <div id="history-list"></div>
+    </div>
+</div>
+
+<script>
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const params = new URLSearchParams(window.location.search);
+const gistId = params.get('gist');
+
+// ===== VIEW MODE =====
+if (gistId) {
+    document.getElementById('upload-mode').style.display = 'none';
+    const viewBar = document.getElementById('view-bar');
+    const viewer = document.getElementById('viewer');
+    viewBar.classList.add('visible');
+    viewer.style.display = 'block';
+    viewer.innerHTML = '<p style="color:#aaa">Loading...</p>';
+
+    fetch(`https://api.github.com/gists/${gistId}`)
+        .then(r => r.json())
+        .then(async data => {
+            if (data.message) throw new Error(data.message);
+            const file = Object.values(data.files)[0];
+            const filename = file.filename;
+            document.getElementById('view-filename').textContent = filename;
+            document.title = `${filename} — No More Uploads!`;
+
+            // Get full content
+            let content = file.content;
+            if (file.truncated) {
+                content = await fetch(file.raw_url).then(r => r.text());
+            }
+
+            // Determine type from the metadata stored in the gist description or filename
+            const ext = filename.split('.').pop().toLowerCase();
+
+            if (ext === 'b64pdf') {
+                // It's a base64-encoded PDF
+                const pdfData = atob(content);
+                const pdfArray = new Uint8Array(pdfData.length);
+                for (let i = 0; i < pdfData.length; i++) pdfArray[i] = pdfData.charCodeAt(i);
+                await renderPdf(pdfArray.buffer, viewer);
+            } else if (['b64png', 'b64jpg', 'b64jpeg', 'b64gif', 'b64webp', 'b64svg'].includes(ext)) {
+                // base64-encoded image
+                const realExt = ext.replace('b64', '');
+                const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml' };
+                viewer.innerHTML = `<img src="data:${mimeMap[realExt]};base64,${content}" alt="${filename}">`;
+            } else {
+                // Plain text / code
+                viewer.innerHTML = `<pre>${escapeHtml(content)}</pre>`;
+            }
+        })
+        .catch(err => {
+            viewer.innerHTML = `<p style="color:#e74c3c">Error: ${err.message}</p>`;
+        });
+}
+
+// ===== UPLOAD MODE =====
+else {
+    document.getElementById('view-bar').style.display = 'none';
+    document.getElementById('viewer').style.display = 'none';
+
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+    const spinner = document.getElementById('spinner');
+    const errorEl = document.getElementById('error');
+    const result = document.getElementById('result');
+    const linkOutput = document.getElementById('link-output');
+    const copyBtn = document.getElementById('copy-btn');
+    const tokenInput = document.getElementById('token-input');
+    const tokenInputView = document.getElementById('token-input-view');
+    const tokenSavedView = document.getElementById('token-saved-view');
+    const historyDiv = document.getElementById('history');
+    const historyList = document.getElementById('history-list');
+    const previewEl = document.getElementById('preview');
+
+    function getToken() { return localStorage.getItem('nmu-github-token') || ''; }
+    function saveToken() {
+        const token = tokenInput.value.trim();
+        if (!token) return;
+        localStorage.setItem('nmu-github-token', token);
+        showTokenSaved();
+    }
+    window.saveToken = saveToken;
+
+    function clearToken() {
+        localStorage.removeItem('nmu-github-token');
+        tokenInputView.style.display = 'block';
+        tokenSavedView.style.display = 'none';
+        tokenInput.value = '';
+    }
+    window.clearToken = clearToken;
+
+    function showTokenSaved() { tokenInputView.style.display = 'none'; tokenSavedView.style.display = 'flex'; }
+    if (getToken()) showTokenSaved();
+
+    // History
+    function getHistory() { return JSON.parse(localStorage.getItem('nmu-history') || '[]'); }
+    function addToHistory(name, url) {
+        const h = getHistory();
+        h.unshift({ name, url, time: Date.now() });
+        if (h.length > 20) h.pop();
+        localStorage.setItem('nmu-history', JSON.stringify(h));
+        renderHistory();
+    }
+    function renderHistory() {
+        const h = getHistory();
+        if (!h.length) { historyDiv.style.display = 'none'; return; }
+        historyDiv.style.display = 'block';
+        historyList.innerHTML = h.map(item => {
+            const u = item.url.replace(/'/g, "\\'");
+            return `<div class="history-item"><span class="name">${escapeHtml(item.name)}</span><div class="actions"><button onclick="copyToClipboard('${u}',this)">Copy</button><button onclick="window.open('${u}','_blank')">View</button></div></div>`;
+        }).join('');
+    }
+    renderHistory();
+
+    // Drop zone
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', e => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+    async function handleFile(file) {
+        const token = getToken();
+        if (!token) { showError('Save your GitHub token first.'); return; }
+
+        errorEl.classList.remove('visible');
+        result.classList.remove('visible');
+        previewEl.style.display = 'none';
+        spinner.classList.add('visible');
+
+        try {
+            const ext = file.name.split('.').pop().toLowerCase();
+            const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
+            let gistFilename, content;
+
+            if (ext === 'pdf') {
+                // Encode PDF as base64
+                const buf = await file.arrayBuffer();
+                content = arrayBufferToBase64(buf);
+                gistFilename = file.name.replace('.pdf', '.b64pdf');
+
+                // Render preview
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = '<p style="color:#aaa">Rendering preview...</p>';
+                await renderPdf(buf, previewEl);
+
+            } else if (imageTypes.includes(ext) || file.type.startsWith('image/')) {
+                // Encode image as base64
+                const buf = await file.arrayBuffer();
+                content = arrayBufferToBase64(buf);
+                gistFilename = file.name.replace(/\.(\w+)$/, '.b64$1');
+
+                // Show preview
+                const mimeMap = { png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml', bmp: 'image/bmp' };
+                const mime = mimeMap[ext] || file.type;
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = `<img src="data:${mime};base64,${content}" alt="${file.name}">`;
+
+            } else {
+                // Plain text
+                content = await file.text();
+                gistFilename = file.name;
+
+                previewEl.style.display = 'block';
+                previewEl.innerHTML = `<pre>${escapeHtml(content.length > 50000 ? content.slice(0, 50000) + '\n...[truncated]' : content)}</pre>`;
+            }
+
+            // Upload to Gist
+            const res = await fetch('https://api.github.com/gists', {
+                method: 'POST',
+                headers: { 'Authorization': `token ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    description: `No More Uploads: ${file.name}`,
+                    public: false,
+                    files: { [gistFilename]: { content } }
                 })
-                .then(content => {
-                    viewContent.textContent = content;
-                })
-                .catch(err => {
-                    viewContent.textContent = 'Error loading file: ' + err.message;
-                });
-
-        } else {
-            // UPLOAD MODE
-            document.getElementById('view-header').style.display = 'none';
-            document.getElementById('view-content').style.display = 'none';
-
-            const dropZone = document.getElementById('drop-zone');
-            const fileInput = document.getElementById('file-input');
-            const spinner = document.getElementById('spinner');
-            const errorEl = document.getElementById('error');
-            const result = document.getElementById('result');
-            const linkOutput = document.getElementById('link-output');
-            const copyBtn = document.getElementById('copy-btn');
-            const tokenInput = document.getElementById('token-input');
-            const tokenInputView = document.getElementById('token-input-view');
-            const tokenSavedView = document.getElementById('token-saved-view');
-            const historyDiv = document.getElementById('history');
-            const historyList = document.getElementById('history-list');
-            const preview = document.getElementById('preview');
-            const previewContent = document.getElementById('preview-content');
-            const previewFilename = document.getElementById('preview-filename');
-            const previewMeta = document.getElementById('preview-meta');
-
-            // PDF.js setup
-            if (window.pdfjsLib) {
-                pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-            }
-
-            // Token management
-            function getToken() {
-                return localStorage.getItem('nmu-github-token') || '';
-            }
-
-            function saveToken() {
-                const token = tokenInput.value.trim();
-                if (!token) return;
-                localStorage.setItem('nmu-github-token', token);
-                showTokenSaved();
-            }
-            window.saveToken = saveToken;
-
-            function clearToken() {
-                localStorage.removeItem('nmu-github-token');
-                tokenInputView.style.display = 'block';
-                tokenSavedView.style.display = 'none';
-                tokenInput.value = '';
-            }
-            window.clearToken = clearToken;
-
-            function showTokenSaved() {
-                tokenInputView.style.display = 'none';
-                tokenSavedView.style.display = 'flex';
-            }
-
-            if (getToken()) showTokenSaved();
-
-            // History
-            function getHistory() {
-                return JSON.parse(localStorage.getItem('nmu-history') || '[]');
-            }
-
-            function addToHistory(name, url) {
-                const history = getHistory();
-                history.unshift({ name, url, time: Date.now() });
-                if (history.length > 20) history.pop();
-                localStorage.setItem('nmu-history', JSON.stringify(history));
-                renderHistory();
-            }
-
-            function renderHistory() {
-                const history = getHistory();
-                if (history.length === 0) {
-                    historyDiv.style.display = 'none';
-                    return;
-                }
-                historyDiv.style.display = 'block';
-                historyList.innerHTML = history.map(item => {
-                    const safeUrl = item.url.replace(/'/g, "\\'");
-                    return `
-                    <div class="history-item">
-                        <span class="name">${escapeHtml(item.name)}</span>
-                        <div class="actions">
-                            <button onclick="copyToClipboard('${safeUrl}', this)">Copy link</button>
-                            <button onclick="window.open('${safeUrl}', '_blank')">Open</button>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-
-            function escapeHtml(text) {
-                const div = document.createElement('div');
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            renderHistory();
-
-            // File size formatter
-            function formatSize(bytes) {
-                if (bytes < 1024) return bytes + ' B';
-                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-            }
-
-            // Extract text from PDF
-            async function extractPdfText(arrayBuffer) {
-                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-                let text = '';
-                for (let i = 1; i <= pdf.numPages; i++) {
-                    const page = await pdf.getPage(i);
-                    const content = await page.getTextContent();
-                    const pageText = content.items.map(item => item.str).join(' ');
-                    text += `--- Page ${i} ---\n${pageText}\n\n`;
-                }
-                return text;
-            }
-
-            // Drop zone events
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('dragover');
-            });
-            dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
-            });
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length) handleFile(e.target.files[0]);
             });
 
-            async function handleFile(file) {
-                const token = getToken();
-                if (!token) {
-                    showError('Please save your GitHub token first.');
-                    return;
-                }
+            if (!res.ok) { const d = await res.json(); throw new Error(d.message || `API error ${res.status}`); }
 
-                // Reset
-                errorEl.classList.remove('visible');
-                result.classList.remove('visible');
-                preview.classList.remove('visible');
-                spinner.classList.add('visible');
+            const data = await res.json();
+            const viewerUrl = `${window.location.origin}${window.location.pathname}?gist=${data.id}`;
 
-                try {
-                    let content = '';
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    const imageTypes = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'];
+            spinner.classList.remove('visible');
+            result.classList.add('visible');
+            linkOutput.value = viewerUrl;
+            addToHistory(file.name, viewerUrl);
 
-                    if (ext === 'pdf') {
-                        // Extract text from PDF
-                        const arrayBuffer = await file.arrayBuffer();
-                        content = await extractPdfText(arrayBuffer);
-                    } else if (imageTypes.includes(ext) || file.type.startsWith('image/')) {
-                        // For images, read as base64 for preview, but upload as data URI text
-                        const dataUrl = await new Promise((resolve) => {
-                            const reader = new FileReader();
-                            reader.onload = (e) => resolve(e.target.result);
-                            reader.readAsDataURL(file);
-                        });
-                        // Show image preview
-                        previewFilename.textContent = file.name;
-                        previewMeta.textContent = formatSize(file.size);
-                        previewContent.innerHTML = `<img src="${dataUrl}" alt="${escapeHtml(file.name)}">`;
-                        preview.classList.add('visible');
-
-                        // Upload as text description + base64
-                        content = `[Image file: ${file.name}]\n\nBase64 data URI:\n${dataUrl}`;
-                    } else {
-                        content = await file.text();
-                    }
-
-                    // Show preview for text content
-                    if (ext !== 'png' && ext !== 'jpg' && ext !== 'jpeg' && ext !== 'gif' && ext !== 'webp' && ext !== 'svg' && ext !== 'bmp' && !file.type.startsWith('image/')) {
-                        previewFilename.textContent = file.name;
-                        previewMeta.textContent = formatSize(file.size);
-                        previewContent.textContent = content.length > 50000 ? content.slice(0, 50000) + '\n\n[...truncated for preview...]' : content;
-                        preview.classList.add('visible');
-                    }
-
-                    // Upload to Gist
-                    const gistFilename = ext === 'pdf' ? file.name.replace('.pdf', '.txt') : file.name;
-                    const res = await fetch('https://api.github.com/gists', {
-                        method: 'POST',
-                        headers: {
-                            'Authorization': `token ${token}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            description: `Shared via No More Uploads: ${file.name}`,
-                            public: false,
-                            files: {
-                                [gistFilename]: { content }
-                            }
-                        })
-                    });
-
-                    if (!res.ok) {
-                        const data = await res.json();
-                        throw new Error(data.message || `GitHub API error ${res.status}`);
-                    }
-
-                    const data = await res.json();
-                    // Generate a viewer link instead of raw URL
-                    const viewerUrl = `${window.location.origin}${window.location.pathname}?gist=${data.id}`;
-
-                    spinner.classList.remove('visible');
-                    result.classList.add('visible');
-                    linkOutput.value = viewerUrl;
-
-                    addToHistory(file.name, viewerUrl);
-
-                } catch (err) {
-                    spinner.classList.remove('visible');
-                    showError(err.message);
-                }
-
-                fileInput.value = '';
-            }
-
-            function showError(msg) {
-                errorEl.textContent = msg;
-                errorEl.classList.add('visible');
-            }
-
-            function copyLink() {
-                navigator.clipboard.writeText(linkOutput.value).then(() => {
-                    copyBtn.textContent = 'Copied!';
-                    copyBtn.classList.add('copied');
-                    setTimeout(() => {
-                        copyBtn.textContent = 'Copy';
-                        copyBtn.classList.remove('copied');
-                    }, 2000);
-                });
-            }
-            window.copyLink = copyLink;
-
-            function copyToClipboard(text, btn) {
-                navigator.clipboard.writeText(text).then(() => {
-                    const orig = btn.textContent;
-                    btn.textContent = 'Copied!';
-                    setTimeout(() => { btn.textContent = orig; }, 1500);
-                });
-            }
-            window.copyToClipboard = copyToClipboard;
+        } catch (err) {
+            spinner.classList.remove('visible');
+            showError(err.message);
         }
-    </script>
+        fileInput.value = '';
+    }
+
+    function showError(msg) { errorEl.textContent = msg; errorEl.classList.add('visible'); }
+
+    function copyLink() {
+        navigator.clipboard.writeText(linkOutput.value).then(() => {
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.add('copied');
+            setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
+        });
+    }
+    window.copyLink = copyLink;
+
+    function copyToClipboard(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const o = btn.textContent; btn.textContent = 'Copied!';
+            setTimeout(() => { btn.textContent = o; }, 1500);
+        });
+    }
+    window.copyToClipboard = copyToClipboard;
+}
+
+// ===== SHARED UTILS =====
+function escapeHtml(text) {
+    const d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
+}
+
+function arrayBufferToBase64(buffer) {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+    }
+    return btoa(binary);
+}
+
+async function renderPdf(arrayBuffer, container) {
+    container.innerHTML = '';
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const scale = 1.5;
+        const viewport = page.getViewport({ scale });
+
+        const label = document.createElement('div');
+        label.className = 'page-label';
+        label.textContent = `Page ${i} of ${pdf.numPages}`;
+        container.appendChild(label);
+
+        const canvas = document.createElement('canvas');
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        container.appendChild(canvas);
+
+        const ctx = canvas.getContext('2d');
+        await page.render({ canvasContext: ctx, viewport }).promise;
+    }
+}
+</script>
 </body>
 </html>
